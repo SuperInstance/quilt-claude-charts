@@ -224,24 +224,24 @@ end rtl;</pre>
 <p>Reference cell state, fed through the canonical FNV-1a 64-bit hash in 7 different languages. The hashes match:</p>
 
 <div class="hash-compare">
-  <div class="row"><div class="lang">Python</div><div class="hash match">0x48aaead731c36a3c</div></div>
-  <div class="row"><div class="lang">C99</div><div class="hash match">0x48aaead731c36a3c</div></div>
-  <div class="row"><div class="lang">Rust</div><div class="hash match">0x48aaead731c36a3c</div></div>
-  <div class="row"><div class="lang">Verilog</div><div class="hash match">0x48aaead731c36a3c</div></div>
-  <div class="row"><div class="lang">VHDL</div><div class="hash match">0x48aaead731c36a3c</div></div>
-  <div class="row"><div class="lang">JavaScript</div><div class="hash match">0x48aaead731c36a3c</div></div>
-  <div class="row"><div class="lang">TypeScript</div><div class="hash match">0x48aaead731c36a3c</div></div>
+  <div class="row"><div class="lang">Python</div><div class="hash match">0xe435d91d6d92a1d8</div></div>
+  <div class="row"><div class="lang">C99</div><div class="hash match">0xe435d91d6d92a1d8</div></div>
+  <div class="row"><div class="lang">Rust</div><div class="hash match">0xe435d91d6d92a1d8</div></div>
+  <div class="row"><div class="lang">Verilog</div><div class="hash match">0xe435d91d6d92a1d8</div></div>
+  <div class="row"><div class="lang">VHDL</div><div class="hash match">0xe435d91d6d92a1d8</div></div>
+  <div class="row"><div class="lang">JavaScript</div><div class="hash match">0xe435d91d6d92a1d8</div></div>
+  <div class="row"><div class="lang">TypeScript</div><div class="hash match">0xe435d91d6d92a1d8</div></div>
 </div>
 
-<p style="color:#888; font-size:0.85rem">Test cell: 1 cell, id=1, dials=[0,131,0,19191,11316,256,0,0,0,0,0,0,0,0,0,0], neighbors=[2,3,4]<br>
-Test vector: serialize cell → fnv1a_64 → 0x48aaead731c36a3c<br>
+<p style="color:#888; font-size:0.85rem">Test cell: 1 cell, id=1, dials=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16], neighbors=[2,3,4]<br>
+Test vector: serialize cell → fnv1a_64 → 0xe435d91d6d92a1d8<br>
 If your port produces a different hash, the cell is not byte-exact and cannot be admitted to the canon.</p>
 
 <h2>How to add a new port</h2>
 <ol>
   <li>Implement the 5 opcodes (BIND/LINK/EFFECT/VIEW/TICK) in your language</li>
   <li>Implement FNV-1a 64-bit hash with the exact constants above</li>
-  <li>Run the byte-exact test: cell {id:1, dials:[0,131,0,19191,...]} → 0x48aaead731c36a3c</li>
+  <li>Run the byte-exact test: cell {id:1, dials:[0,131,0,19191,...]} → 0xe435d91d6d92a1d8</li>
   <li>Push to <code>github.com/SuperInstance/quilt-{lang}</code></li>
   <li>Submit a PR to the canon with the hash, the test code, and a one-line description</li>
 </ol>
@@ -266,8 +266,8 @@ FNV_OFFSET = 0xcbf29ce484222325
 FNV_PRIME  = 0x100000001b3
 
 Write a complete, working cell-fabric runtime in [YOUR LANGUAGE].
-Then write a test that produces the hash 0x48aaead731c36a3c
-for a cell with id=1, dials=[0,131,0,19191,11316,256,0,0,0,0,0,0,0,0,0,0],
+Then write a test that produces the hash 0xe435d91d6d92a1d8
+for a cell with id=1, dials=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
 neighbors=[2,3,4].
 
 Do not use any external libraries. Do not add features beyond

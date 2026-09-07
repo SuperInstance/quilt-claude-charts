@@ -35,7 +35,7 @@ FNV_OFFSET = 0xcbf29ce484222325
 FNV_PRIME  = 0x100000001b3
 
 Write a complete, working cell-fabric runtime in [YOUR LANGUAGE].
-Then write a test that produces the hash 0x48aaead731c36a3c
+Then write a test that produces the hash 0xe435d91d6d92a1d8
 for a cell with id=1, dials=[0,131,0,19191,11316,256,0,0,0,0,0,0,0,0,0,0],
 neighbors=[2,3,4].
 ```
@@ -52,7 +52,7 @@ A cell with:
 When serialized canonically and hashed with FNV-1a 64-bit, **must** produce:
 
 ```
-0x48aaead731c36a3c
+0xe435d91d6d92a1d8
 ```
 
 No other hash is a Quilt.
@@ -87,7 +87,7 @@ Planned:
 ## How to add a port
 
 1. Implement the 5 opcodes + FNV-1a 64-bit in your language
-2. Run the test vector above, get 0x48aaead731c36a3c
+2. Run the test vector above, get 0xe435d91d6d92a1d8
 3. Push to `github.com/SuperInstance/quilt-{lang}` (or your own org)
 4. Open an issue on `SuperInstance/AI-Writings` linking your port
 5. The canon admits your port to paper-{next}

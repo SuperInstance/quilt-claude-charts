@@ -27,8 +27,8 @@ FNV_OFFSET = 0xcbf29ce484222325
 FNV_PRIME  = 0x100000001b3
 
 Write a complete, working cell-fabric runtime in [YOUR LANGUAGE].
-Then write a test that produces the hash 0x48aaead731c36a3c
-for a cell with id=1, dials=[0,131,0,19191,11316,256,0,0,0,0,0,0,0,0,0,0],
+Then write a test that produces the hash 0xe435d91d6d92a1d8
+for a cell with id=1, dials=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
 neighbors=[2,3,4].
 
 Do not use any external libraries. Do not add features beyond
@@ -84,12 +84,12 @@ cell = {
     'neighbors': [2, 3, 4]
 }
 print(hex(hash_fabric([cell])))
-# → 0x48aaead731c36a3c
+# → 0xe435d91d6d92a1d8
 ```
 
 ## Why this works
 
-1. **The test vector is the contract.** 0x48aaead731c36a3c is unambiguous. Either your hash function produces it or it doesn't. No subjective review.
+1. **The test vector is the contract.** 0xe435d91d6d92a1d8 is unambiguous. Either your hash function produces it or it doesn't. No subjective review.
 2. **The 5 opcodes are minimal.** They are the smallest set that supports the 5 algebraic laws (idempotent, commutative, oscillatory, composable, invertible).
 3. **No external libraries** means the runtime is portable. A Quilt in pure C runs on a microcontroller. A Quilt in pure Python runs in a Jupyter notebook. A Quilt in pure WASM runs in a browser.
 4. **The hash is byte-exact across all 11 verified ports.** This is the polyformalism claim: a concept that survives portability has captured something real.
