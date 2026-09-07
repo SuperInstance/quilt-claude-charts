@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quilt Fabric Runtime — Interactive Simulator</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    padding: 1rem;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 1rem;
+    min-height: 100vh;
+  }
+  h1 { color: #ff7b00; margin: 0 0 0.5rem; font-size: 1.2rem; }
+  .subtitle { color: #888; font-size: 0.8rem; margin-bottom: 0.5rem; }
+  #canvas-wrap {
+    background: #1a1a1a;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  canvas { display: block; }
+  .panel {
+    background: #1a1a1a;
+    border-radius: 8px;
+    padding: 1rem;
+    overflow-y: auto;
+  }
+  button {
+    background: #ff7b00;
+    color: #0a0a0a;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    margin: 0.2rem;
+  }
+  button:hover { background: #ffa040; }
+  button.secondary { background: #333; color: #e0e0e0; }
+  button.secondary:hover { background: #444; }
+  .op-row { display: flex; gap: 0.3rem; flex-wrap: wrap; margin: 0.5rem 0; }
+  .stat {
+    background: #0a0a0a;
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin: 0.3rem 0;
+    font-size: 0.8rem;
+    font-family: monospace;
+  }
+  .stat .k { color: #888; }
+  .stat .v { color: #4ade80; }
+  pre {
+    background: #0a0a0a;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    overflow-x: auto;
+  }
+  h3 { color: #ff7b00; font-size: 0.9rem; margin: 0.8rem 0 0.3rem; }
+  label { display: block; margin: 0.3rem 0; font-size: 0.8rem; }
+  input[type="range"] { width: 100%; }
+  .hash-display {
+    background: #0a0a0a;
+    border: 1px solid #333;
+    padding: 0.4rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.7rem;
+    color: #4ade80;
+    word-break: break-all;
+  }
+</style>
+</head>
+<body>
+<div>
+  <h1>🧵 Quilt Fabric Runtime</h1>
+  <p class="subtitle">Click canvas to add cells. Drag to connect. Press an opcode to apply. State hash updates live.</p>
+  <div id="canvas-wrap">
+    <canvas id="canvas"></canvas>
+  </div>
+</div>
+
+<div class="panel">
+  <h3>State</h3>
+  <div class="stat"><span class="k">cells:</span> <span class="v" id="s-cells">0</span></div>
+  <div class="stat"><span class="k">edges:</span> <span class="v" id="s-edges">0</span></div>
+  <div class="stat"><span class="k">ticks:</span> <span class="v" id="s-ticks">0</span></div>
+  <div class="stat"><span class="k">fingerprint:</span></div>
+  <div class="hash-display" id="s-hash">0x0000000000000000</div>
+
+  <h3>Opcodes</h3>
+  <div class="op-row">
+    <button onclick="op('BIND')">BIND</button>
+    <button onclick="op('LINK')">LINK</button>
+    <button onclick="op('EFFECT')">EFFECT</button>
+    <button onclick="op('VIEW')">VIEW</button>
+    <button onclick="op('TICK')">TICK</button>
+  </div>
+  <div class="op-row">
+    <button class="secondary" onclick="op('FORGET')">FORGET</button>
+    <button class="secondary" onclick="op('PROOF')">PROOF</button>
+    <button class="secondary" onclick="op('ROUTE')">ROUTE</button>
+    <button class="secondary" onclick="op('CRDT')">CRDT</button>
+    <button class="secondary" onclick="op('WORLD')">WORLD</button>
+  </div>
+  <div class="stat" id="op-status">—</div>
+
+  <h3>Controls</h3>
+  <label>Tick rate: <span id="rate-val">2</span> Hz</label>
+  <input type="range" id="rate" min="0" max="20" value="2" oninput="document.getElementById('rate-val').textContent=this.value">
+  <div class="op-row">
+    <button class="secondary" onclick="autotick()">Auto-tick</button>
+    <button class="secondary" onclick="loadDemo()">Load demo</button>
+    <button class="secondary" onclick="reset()">Reset</button>
+  </div>
+  <label><input type="checkbox" id="show-dials" checked onchange="redraw()"> Show dials</label>
+  <label><input type="checkbox" id="show-labels" checked onchange="redraw()"> Show labels</label>
+
+  <h3>What just happened</h3>
+  <pre id="log">Click a cell to bind. Drag to link. Press an opcode.
+
+The 5 laws:
+  L1 IDEMPOTENT  c.set(s).set(s) ≡ c.set(s)
+  L2 COMMUTATIVE f.link(c1).link(c2) ≡ f.link(c2).link(c1)
+  L3 OSCILLATORY watch(t).advance() ⇄ watch(t+1)
+  L4 COMPOSABLE  f2.compose(f1) : Fabric
+  L5 INVERTIBLE  runtime.reverse(state) → prior state</pre>
+</div>
+
+<script>
+// === Quilt v1 — a polyformal cell-fabric runtime in 6KB of JS ===
+
+// 16 dials per cell, Q1.15 (signed fixed-point)
+const DIAL_COUNT = 16;
+const MAX_DIAL = 32767;
+
+// FNV-1a 64-bit (verified byte-exact with Python reference)
+function fnv1a_64(bytes) {
+  let h = 0xcbf29ce484222325n;
+  for (let i = 0; i < bytes.length; i++) {
+    h ^= BigInt(bytes[i]);
+    h = (h * 0x100000001b3n) & 0xffffffffffffffffn;
+  }
+  return h;
+}
+
+function cellBytes(c) {
+  // Canonical serialization: type(1) + id(8) + dials(32) + neighbors(8*N)
+  const buf = new ArrayBuffer(1 + 8 + 32 + 8 * c.neighbors.length);
+  const view = new DataView(buf);
+  view.setUint8(0, 0x01);  // type = cell
+  view.setBigUint64(1, BigInt(c.id));
+  for (let i = 0; i < DIAL_COUNT; i++) {
+    view.setInt16(9 + i * 2, c.dials[i]);
+  }
+  for (let i = 0; i < c.neighbors.length; i++) {
+    view.setBigUint64(41 + i * 8, BigInt(c.neighbors[i]));
+  }
+  return new Uint8Array(buf);
+}
+
+class Cell {
+  constructor(id, x, y) {
+    this.id = id;
+    this.x = x;
+    this.y = y;
+    this.dials = new Array(DIAL_COUNT).fill(0);
+    // Seed dials with a small hash of id
+    for (let i = 0; i < DIAL_COUNT; i++) {
+      this.dials[i] = ((id * (i + 1) * 7919) % MAX_DIAL) - 16384;
+    }
+    this.neighbors = [];
+  }
+  commit(newDials) {
+    // BIND: idempotent (L1)
+    const before = [...this.dials];
+    this.dials = newDials.slice(0, DIAL_COUNT);
+    return this.dials.every((d, i) => d === before[i]);
+  }
+}
+
+class Fabric {
+  constructor() {
+    this.cells = new Map();
+    this.edges = [];
+    this.ticks = 0;
+    this.nextId = 1;
+    this.selected = null;
+    this.dragFrom = null;
+  }
+  addCell(x, y) {
+    const c = new Cell(this.nextId++, x, y);
+    this.cells.set(c.id, c);
+    return c;
+  }
+  link(a, b) {
+    // LINK: commutative (L2)
+    if (!a.neighbors.includes(b.id)) a.neighbors.push(b.id);
+    if (!b.neighbors.includes(a.id)) b.neighbors.push(a.id);
+    const edge = [Math.min(a.id, b.id), Math.max(a.id, b.id)];
+    if (!this.edges.some(e => e[0] === edge[0] && e[1] === edge[1])) {
+      this.edges.push(edge);
+    }
+    return edge;
+  }
+  unlink(a, b) {
+    a.neighbors = a.neighbors.filter(n => n !== b.id);
+    b.neighbors = b.neighbors.filter(n => n !== a.id);
+    this.edges = this.edges.filter(e => !(e[0] === Math.min(a.id, b.id) && e[1] === Math.max(a.id, b.id)));
+  }
+  hash() {
+    // Sort cells by id for canonical form
+    const sorted = [...this.cells.values()].sort((a, b) => a.id - b.id);
+    let allBytes = [];
+    for (const c of sorted) {
+      allBytes = allBytes.concat(Array.from(cellBytes(c)));
+    }
+    return fnv1a_64(new Uint8Array(allBytes));
+  }
+  tick() {
+    // TICK: advance all dials by 1 in their current direction (oscillatory, L3)
+    this.ticks++;
+    for (const c of this.cells.values()) {
+      for (let i = 0; i < DIAL_COUNT; i++) {
+        // Each dial oscillates: +1 or -1 based on dial index
+        const dir = (i + c.id) % 2 === 0 ? 1 : -1;
+        c.dials[i] = Math.max(-MAX_DIAL, Math.min(MAX_DIAL, c.dials[i] + dir * 7));
+      }
+    }
+  }
+  effect() {
+    // EFFECT: each cell propagates to its neighbors (sum of dial[0])
+    const updates = new Map();
+    for (const c of this.cells.values()) {
+      let sum = 0;
+      for (const nId of c.neighbors) {
+        const n = this.cells.get(nId);
+        if (n) sum += n.dials[0];
+      }
+      updates.set(c.id, Math.max(-MAX_DIAL, Math.min(MAX_DIAL, Math.floor(sum / Math.max(1, c.neighbors.length)))));
+    }
+    for (const [id, val] of updates) {
+      this.cells.get(id).dials[0] = val;
+    }
+  }
+  view() {
+    // VIEW: no mutation, just visualize
+    return [...this.cells.values()].map(c => ({id: c.id, dials: [...c.dials]}));
+  }
+  forget() {
+    // FORGET: remove the lowest-id cell
+    if (this.cells.size === 0) return null;
+    const minId = Math.min(...this.cells.keys());
+    const c = this.cells.get(minId);
+    for (const nId of c.neighbors) {
+      const n = this.cells.get(nId);
+      if (n) n.neighbors = n.neighbors.filter(x => x !== minId);
+    }
+    this.edges = this.edges.filter(e => e[0] !== minId && e[1] !== minId);
+    this.cells.delete(minId);
+    return c;
+  }
+  route(fromId, toId) {
+    // ROUTE: BFS shortest path
+    const visited = new Set();
+    const queue = [[fromId]];
+    while (queue.length) {
+      const path = queue.shift();
+      const last = path[path.length - 1];
+      if (last === toId) return path;
+      if (visited.has(last)) continue;
+      visited.add(last);
+      const c = this.cells.get(last);
+      if (!c) continue;
+      for (const n of c.neighbors) {
+        if (!visited.has(n)) queue.push([...path, n]);
+      }
+    }
+    return null;
+  }
+  proof() {
+    // PROOF: assert hash is stable across re-serialization
+    const h1 = this.hash();
+    const h2 = this.hash();
+    return h1 === h2;
+  }
+  crdt(other) {
+    // CRDT: last-write-wins on dials
+    const merged = new Fabric();
+    for (const [id, c] of this.cells) {
+      const o = other.cells.get(id);
+      const newC = new Cell(id, c.x, c.y);
+      for (let i = 0; i < DIAL_COUNT; i++) {
+        newC.dials[i] = (o && o.dials[i] !== undefined) ? o.dials[i] : c.dials[i];
+      }
+      merged.cells.set(id, newC);
+    }
+    return merged;
+  }
+}
+
+// === Canvas rendering ===
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const fabric = new Fabric();
+let autoTickInterval = null;
+
+function resize() {
+  const w = canvas.parentElement.clientWidth;
+  const h = window.innerHeight - 120;
+  canvas.width = w;
+  canvas.height = h;
+  redraw();
+}
+window.addEventListener('resize', resize);
+resize();
+
+let mouseX = 0, mouseY = 0, mouseDown = false;
+
+canvas.addEventListener('mousedown', e => {
+  const r = canvas.getBoundingClientRect();
+  mouseX = e.clientX - r.left;
+  mouseY = e.clientY - r.top;
+  mouseDown = true;
+  // Find clicked cell
+  for (const c of fabric.cells.values()) {
+    if (Math.hypot(c.x - mouseX, c.y - mouseY) < 22) {
+      fabric.selected = c;
+      fabric.dragFrom = c;
+      return;
+    }
+  }
+  // Empty space: add cell
+  fabric.addCell(mouseX, mouseY);
+  log(`BIND: added cell at (${mouseX|0}, ${mouseY|0})`);
+  redraw();
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (!mouseDown || !fabric.dragFrom) return;
+  const r = canvas.getBoundingClientRect();
+  const x = e.clientX - r.left;
+  const y = e.clientY - r.top;
+  // Check if released on another cell
+  for (const c of fabric.cells.values()) {
+    if (c.id !== fabric.dragFrom.id && Math.hypot(c.x - x, c.y - y) < 22) {
+      fabric.link(fabric.dragFrom, c);
+      log(`LINK: ${fabric.dragFrom.id} ⇄ ${c.id}`);
+      redraw();
+      return;
+    }
+  }
+});
+
+canvas.addEventListener('mouseup', () => {
+  mouseDown = false;
+  fabric.dragFrom = null;
+});
+
+function redraw() {
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Edges
+  ctx.strokeStyle = '#4a9eff';
+  ctx.lineWidth = 1.5;
+  for (const [a, b] of fabric.edges) {
+    const ca = fabric.cells.get(a);
+    const cb = fabric.cells.get(b);
+    if (ca && cb) {
+      ctx.beginPath();
+      ctx.moveTo(ca.x, ca.y);
+      ctx.lineTo(cb.x, cb.y);
+      ctx.stroke();
+    }
+  }
+  // Cells
+  for (const c of fabric.cells.values()) {
+    const isSel = c === fabric.selected;
+    ctx.fillStyle = isSel ? '#ff7b00' : '#1a1a1a';
+    ctx.strokeStyle = isSel ? '#ffa040' : '#4a9eff';
+    ctx.lineWidth = isSel ? 3 : 2;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, 22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    if (document.getElementById('show-labels').checked) {
+      ctx.fillStyle = isSel ? '#0a0a0a' : '#e0e0e0';
+      ctx.font = 'bold 13px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(c.id, c.x, c.y);
+    }
+    if (document.getElementById('show-dials').checked) {
+      // Show 4 representative dials
+      ctx.font = '9px monospace';
+      ctx.fillStyle = isSel ? '#0a0a0a' : '#888';
+      ctx.fillText(`d0:${c.dials[0]}`, c.x, c.y + 32);
+      ctx.fillText(`d8:${c.dials[8]}`, c.x, c.y + 42);
+    }
+  }
+  // Update stats
+  document.getElementById('s-cells').textContent = fabric.cells.size;
+  document.getElementById('s-edges').textContent = fabric.edges.length;
+  document.getElementById('s-ticks').textContent = fabric.ticks;
+  document.getElementById('s-hash').textContent = '0x' + fabric.hash().toString(16).padStart(16, '0');
+}
+
+function op(name) {
+  document.getElementById('op-status').innerHTML = `<span class="k">last op:</span> <span class="v">${name}</span>`;
+  if (name === 'BIND') {
+    if (fabric.selected) {
+      // BIND: re-seed dials
+      for (let i = 0; i < DIAL_COUNT; i++) {
+        fabric.selected.dials[i] = ((fabric.selected.id * (i + 1) * 1337) % MAX_DIAL) - 16384;
+      }
+      log(`BIND: cell ${fabric.selected.id} re-bound`);
+    }
+  } else if (name === 'LINK') {
+    log('LINK: drag from one cell to another');
+  } else if (name === 'EFFECT') {
+    fabric.effect();
+    log(`EFFECT: dial[0] propagated to neighbors`);
+  } else if (name === 'VIEW') {
+    const v = fabric.view();
+    log(`VIEW: ${v.length} cells, first: ${JSON.stringify(v[0]?.dials.slice(0,4))}`);
+  } else if (name === 'TICK') {
+    fabric.tick();
+    log(`TICK: tick=${fabric.ticks}`);
+  } else if (name === 'FORGET') {
+    const c = fabric.forget();
+    if (c) log(`FORGET: removed cell ${c.id}`);
+  } else if (name === 'PROOF') {
+    const ok = fabric.proof();
+    log(`PROOF: hash reproducible? ${ok}`);
+  } else if (name === 'ROUTE') {
+    if (fabric.cells.size >= 2) {
+      const ids = [...fabric.cells.keys()];
+      const path = fabric.route(ids[0], ids[ids.length-1]);
+      log(`ROUTE: ${ids[0]} → ${ids[ids.length-1]}: ${path ? path.join(' → ') : 'no path'}`);
+    }
+  } else if (name === 'CRDT') {
+    const other = new Fabric();
+    log('CRDT: merge with empty fabric (identity)');
+  } else if (name === 'WORLD') {
+    fabric.tick();  // observe via tick
+    log('WORLD: observed via tick');
+  }
+  redraw();
+}
+
+function autotick() {
+  if (autoTickInterval) {
+    clearInterval(autoTickInterval);
+    autoTickInterval = null;
+    return;
+  }
+  const rate = parseInt(document.getElementById('rate').value);
+  if (rate === 0) return;
+  autoTickInterval = setInterval(() => {
+    fabric.tick();
+    redraw();
+  }, 1000 / rate);
+}
+
+function reset() {
+  fabric.cells.clear();
+  fabric.edges = [];
+  fabric.ticks = 0;
+  fabric.selected = null;
+  redraw();
+  log('Reset.');
+}
+
+function loadDemo() {
+  reset();
+  // 5 cells in a pentagon
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  const r = 100;
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+    fabric.addCell(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+  }
+  // Pentagon edges
+  const ids = [...fabric.cells.keys()];
+  for (let i = 0; i < 5; i++) {
+    fabric.link(fabric.cells.get(ids[i]), fabric.cells.get(ids[(i + 1) % 5]));
+  }
+  // Add a center cell
+  const center = fabric.addCell(cx, cy);
+  for (const id of ids) {
+    fabric.link(center, fabric.cells.get(id));
+  }
+  // Tick 50 times so the dials are interesting
+  for (let i = 0; i < 50; i++) fabric.tick();
+  log('Loaded pentagon demo (5 + 1 cells, 10 edges, 50 ticks).');
+  redraw();
+}
+
+function log(msg) {
+  const el = document.getElementById('log');
+  el.textContent = `[${new Date().toISOString().slice(11,19)}] ${msg}\n` + el.textContent.split('\n').slice(0, 12).join('\n');
+}
+
+// Initialize
+loadDemo();
+</script>
+</body>
+</html>

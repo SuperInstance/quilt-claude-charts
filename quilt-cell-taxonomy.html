@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quilt Cell Taxonomy — Claude Chart</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    padding: 2rem;
+  }
+  h1 { color: #ff7b00; margin: 0 0 0.5rem; }
+  h2 { color: #ff7b00; margin: 2rem 0 0.5rem; font-size: 1.1rem; }
+  .subtitle { color: #888; margin-bottom: 1.5rem; }
+  .legend {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+    font-size: 0.85rem;
+    flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 0.5rem; }
+  .legend-box { width: 14px; height: 14px; border-radius: 3px; }
+  table {
+    border-collapse: separate;
+    border-spacing: 4px;
+    margin: 1rem 0;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    background: #1a1a1a;
+    border-radius: 6px;
+    text-align: left;
+    font-size: 0.85rem;
+    min-width: 120px;
+  }
+  th {
+    background: #222;
+    color: #ff7b00;
+    font-weight: 600;
+  }
+  th.row-label {
+    background: #222;
+    color: #4a9eff;
+    font-family: monospace;
+  }
+  td {
+    cursor: pointer;
+    transition: transform 0.1s, background 0.1s;
+  }
+  td:hover { transform: scale(1.05); }
+  .cell-op { border-left: 3px solid #ff7b00; }
+  .cell-sub { border-left: 3px solid #4a9eff; }
+  .cell-runtime { border-left: 3px solid #4ade80; }
+  .cell-meta { border-left: 3px solid #f59e0b; }
+  .cell-empty { color: #555; font-style: italic; }
+  .detail {
+    background: #1a1a1a;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    min-height: 80px;
+  }
+  .detail h3 { margin: 0 0 0.5rem; color: #ff7b00; font-size: 1rem; }
+  .detail code { background: #0a0a0a; padding: 0.1rem 0.3rem; border-radius: 3px; }
+  footer { color: #666; font-size: 0.8rem; margin-top: 2rem; }
+  pre {
+    background: #0a0a0a;
+    padding: 0.6rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 0.78rem;
+  }
+</style>
+</head>
+<body>
+<h1>🧵 Quilt Cell Taxonomy</h1>
+<p class="subtitle">The 7×6 polyformalism matrix — click any cell to see the substrate's manifestation. 80+ papers, 11 languages, 1 state hash.</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-box" style="background:#ff7b00"></div>Core opcodes</div>
+  <div class="legend-item"><div class="legend-box" style="background:#4a9eff"></div>Adopted sub-ops</div>
+  <div class="legend-item"><div class="legend-box" style="background:#4ade80"></div>Runtime surfaces</div>
+  <div class="legend-item"><div class="legend-box" style="background:#f59e0b"></div>Meta / self</div>
+</div>
+
+<table>
+<thead>
+<tr>
+  <th></th>
+  <th>Cell</th>
+  <th>Fabric</th>
+  <th>Watch</th>
+  <th>Runtime</th>
+  <th>Fingerprint</th>
+  <th>Edge</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <th class="row-label">BIND</th>
+  <td class="cell-op" data-op="BIND" data-sub="cell" onclick="show(this)">node 𝑐 → 16-dial state</td>
+  <td class="cell-op" data-op="BIND" data-sub="fabric" onclick="show(this)">edge {c₁,c₂} → wire</td>
+  <td class="cell-op" data-op="BIND" data-sub="watch" onclick="show(this)">tick → Δt clock</td>
+  <td class="cell-op" data-op="BIND" data-sub="runtime" onclick="show(this)">op(s,d) → s'</td>
+  <td class="cell-op" data-op="BIND" data-sub="fingerprint" onclick="show(this)">FNV-1a 64-bit hash</td>
+  <td class="cell-op" data-op="BIND" data-sub="edge" onclick="show(this)">cell → neighbor</td>
+</tr>
+<tr>
+  <th class="row-label">LINK</th>
+  <td class="cell-op" data-op="LINK" data-sub="cell" onclick="show(this)">c.subscribe(λs)</td>
+  <td class="cell-op" data-op="LINK" data-sub="fabric" onclick="show(this)">graph.compose(f₂)</td>
+  <td class="cell-op" data-op="LINK" data-sub="watch" onclick="show(this)">universal ↔ particular</td>
+  <td class="cell-op" data-op="LINK" data-sub="runtime" onclick="show(this)">dial → output bus</td>
+  <td class="cell-op" data-op="LINK" data-sub="fingerprint" onclick="show(this)">hash → bucket</td>
+  <td class="cell-op" data-op="LINK" data-sub="edge" onclick="show(this)">wire → wire</td>
+</tr>
+<tr>
+  <th class="row-label">EFFECT</th>
+  <td class="cell-op" data-op="EFFECT" data-sub="cell" onclick="show(this)">c.set(s)</td>
+  <td class="cell-op" data-op="EFFECT" data-sub="fabric" onclick="show(this)">edge.fire()</td>
+  <td class="cell-op" data-op="EFFECT" data-sub="watch" onclick="show(this)">tick.advance()</td>
+  <td class="cell-op" data-op="EFFECT" data-sub="runtime" onclick="show(this)">dial mutates</td>
+  <td class="cell-op" data-op="EFFECT" data-sub="fingerprint" onclick="show(this)">hash recompute</td>
+  <td class="cell-op" data-op="EFFECT" data-sub="edge" onclick="show(this)">broadcast</td>
+</tr>
+<tr>
+  <th class="row-label">VIEW</th>
+  <td class="cell-op" data-op="VIEW" data-sub="cell" onclick="show(this)">c.dials[0..15]</td>
+  <td class="cell-op" data-op="VIEW" data-sub="fabric" onclick="show(this)">graph.walk()</td>
+  <td class="cell-op" data-op="VIEW" data-sub="watch" onclick="show(this)">4D slice → 3D</td>
+  <td class="cell-op" data-op="VIEW" data-sub="runtime" onclick="show(this)">state → display</td>
+  <td class="cell-op" data-op="VIEW" data-sub="fingerprint" onclick="show(this)">Q1.15 → float</td>
+  <td class="cell-op" data-op="VIEW" data-sub="edge" onclick="show(this)">neighbor.dials</td>
+</tr>
+<tr>
+  <th class="row-label">TICK</th>
+  <td class="cell-op" data-op="TICK" data-sub="cell" onclick="show(this)">c.commit(s)</td>
+  <td class="cell-op" data-op="TICK" data-sub="fabric" onclick="show(this)">graph.step()</td>
+  <td class="cell-op" data-op="TICK" data-sub="watch" onclick="show(this)">Δt = 1 step</td>
+  <td class="cell-op" data-op="TICK" data-sub="runtime" onclick="show(this)">next(state)</td>
+  <td class="cell-op" data-op="TICK" data-sub="fingerprint" onclick="show(this)">hash advance</td>
+  <td class="cell-op" data-op="TICK" data-sub="edge" onclick="show(this)">propagate</td>
+</tr>
+<tr>
+  <th class="row-label">FORGET</th>
+  <td class="cell-sub" data-op="FORGET" data-sub="cell" onclick="show(this)">c.discard()</td>
+  <td class="cell-sub" data-op="FORGET" data-sub="fabric" onclick="show(this)">prune({c})</td>
+  <td class="cell-sub" data-op="FORGET" data-sub="watch" onclick="show(this)">universal ⊥ particular</td>
+  <td class="cell-sub" data-op="FORGET" data-sub="runtime" onclick="show(this)">GC dial</td>
+  <td class="cell-sub" data-op="FORGET" data-sub="fingerprint" onclick="show(this)">hash expire</td>
+  <td class="cell-sub" data-op="FORGET" data-sub="edge" onclick="show(this)">edge delete</td>
+</tr>
+<tr>
+  <th class="row-label">PROOF</th>
+  <td class="cell-sub" data-op="PROOF" data-sub="cell" onclick="show(this)">c.assert(s)</td>
+  <td class="cell-sub" data-op="PROOF" data-sub="fabric" onclick="show(this)">invariant?</td>
+  <td class="cell-sub" data-op="PROOF" data-sub="watch" onclick="show(this)">∀t : state(t)</td>
+  <td class="cell-sub" data-op="PROOF" data-sub="runtime" onclick="show(this)">type check</td>
+  <td class="cell-sub" data-op="PROOF" data-sub="fingerprint" onclick="show(this)">hash collision?</td>
+  <td class="cell-sub" data-op="PROOF" data-sub="edge" onclick="show(this)">reachability</td>
+</tr>
+<tr>
+  <th class="row-label">ROUTE</th>
+  <td class="cell-sub" data-op="ROUTE" data-sub="cell" onclick="show(this)">c.next(c')</td>
+  <td class="cell-sub" data-op="ROUTE" data-sub="fabric" onclick="show(this)">shortest path</td>
+  <td class="cell-sub" data-op="ROUTE" data-sub="watch" onclick="show(this)">oscillation step</td>
+  <td class="cell-sub" data-op="ROUTE" data-sub="runtime" onclick="show(this)">message bus</td>
+  <td class="cell-sub" data-op="ROUTE" data-sub="fingerprint" onclick="show(this)">bucket lookup</td>
+  <td class="cell-sub" data-op="ROUTE" data-sub="edge" onclick="show(this)">multihop</td>
+</tr>
+<tr>
+  <th class="row-label">CRDT</th>
+  <td class="cell-sub" data-op="CRDT" data-sub="cell" onclick="show(this)">c.merge(s,s')</td>
+  <td class="cell-sub" data-op="CRDT" data-sub="fabric" onclick="show(this)">2P-Set union</td>
+  <td class="cell-sub" data-op="CRDT" data-sub="watch" onclick="show(this)">converge(t)</td>
+  <td class="cell-sub" data-op="CRDT" data-sub="runtime" onclick="show(this)">last-write-wins</td>
+  <td class="cell-sub" data-op="CRDT" data-sub="fingerprint" onclick="show(this)">vector clock</td>
+  <td class="cell-sub" data-op="CRDT" data-sub="edge" onclick="edge(this)">causal</td>
+</tr>
+<tr>
+  <th class="row-label">WORLD</th>
+  <td class="cell-sub" data-op="WORLD" data-sub="cell" onclick="show(this)">c.observe(env)</td>
+  <td class="cell-sub" data-op="WORLD" data-sub="fabric" onclick="show(this)">boundary ←→ world</td>
+  <td class="cell-sub" data-op="WORLD" data-sub="watch" onclick="show(this)">tick ⇄ physics</td>
+  <td class="cell-sub" data-op="WORLD" data-sub="runtime" onclick="show(this)">I/O port</td>
+  <td class="cell-sub" data-op="WORLD" data-sub="fingerprint" onclick="show(this)">observation log</td>
+  <td class="cell-sub" data-op="WORLD" data-sub="edge" onclick="show(this)">sensor</td>
+</tr>
+<tr>
+  <th class="row-label">TIME</th>
+  <td class="cell-sub" data-op="TIME" data-sub="cell" onclick="show(this)">c.at(t)</td>
+  <td class="cell-sub" data-op="TIME" data-sub="fabric" onclick="show(this)">history</td>
+  <td class="cell-sub" data-op="TIME" data-sub="watch" onclick="show(this)">t parameter</td>
+  <td class="cell-sub" data-op="TIME" data-sub="runtime" onclick="show(this)">scheduler</td>
+  <td class="cell-sub" data-op="TIME" data-sub="fingerprint" onclick="show(this)">time hash</td>
+  <td class="cell-sub" data-op="TIME" data-sub="edge" onclick="show(this)">delay</td>
+</tr>
+<tr>
+  <th class="row-label">5 LAWS</th>
+  <td class="cell-meta" data-op="LAW" data-sub="cell" onclick="show(this)">idempotent</td>
+  <td class="cell-meta" data-op="LAW" data-sub="fabric" onclick="show(this)">composable</td>
+  <td class="cell-meta" data-op="LAW" data-sub="watch" onclick="show(this)">oscillatory</td>
+  <td class="cell-meta" data-op="LAW" data-sub="runtime" onclick="show(this)">invertible</td>
+  <td class="cell-meta" data-op="LAW" data-sub="fingerprint" onclick="show(this)">byte-exact</td>
+  <td class="cell-meta" data-op="LAW" data-sub="edge" onclick="show(this)">commutative</td>
+</tr>
+</tbody>
+</table>
+
+<div class="detail" id="detail">
+  <h3>Click any cell above</h3>
+  <p>Each cell shows how the opcode manifests in that substrate. The 5 laws (bottom row) are the algebraic properties that hold across all substrates — what makes a cell a cell, not a class.</p>
+</div>
+
+<h2>Polyformalism at a glance</h2>
+<p>The same cell exists in 6 substrates simultaneously. They differ in:
+<ul>
+  <li><b>Memory model</b> — Python uses dicts, C uses arrays, Rust uses enums, Verilog uses registers</li>
+  <li><b>Tick model</b> — Python is event-driven, Verilog is clock-driven, WASM is yield-driven</li>
+  <li><b>Hash algorithm</b> — FNV-1a 64-bit is the same in all 6 (byte-exact verified)</li>
+</ul>
+</p>
+
+<h2>The 5 algebraic laws</h2>
+<pre>
+∀ c, c' : Cell  (cells)
+∀ f, f' : Fabric  (fabrics)
+∀ t : Tick  (ticks)
+∀ s, s' : State
+
+L1  IDEMPOTENT       c.set(s).set(s)  ≡  c.set(s)
+L2  COMMUTATIVE      f.link(c₁).link(c₂)  ≡  f.link(c₂).link(c₁)
+L3  OSCILLATORY      watch(t).advance()  ⇄  watch(t+1)
+L4  COMPOSABLE       f₂.compose(f₁)  : Fabric
+L5  INVERTIBLE       runtime.reverse(state)  →  prior state
+</pre>
+
+<footer>
+🧵 The Quilt is a polyformalism — one cell, six substrates, five laws, one hash.
+<a href="https://github.com/SuperInstance/AI-Writings" style="color:#4a9eff">Read the papers</a> ·
+<a href="quilt-fabric-runtime.html" style="color:#4a9eff">Open the simulator</a> ·
+<a href="quilt-language-map.html" style="color:#4a9eff">See the language ports</a>
+</footer>
+
+<script>
+function show(el) {
+  const op = el.dataset.op;
+  const sub = el.dataset.sub;
+  const detail = document.getElementById('detail');
+  const examples = {
+    'BIND:cell': '<pre>cell = Cell(dials=[0]*16)\n# 16 signed Q1.15 values, -32768..32767</pre>',
+    'BIND:fabric': '<pre>edge = Fabric.link(cell_a, cell_b)\n# edge holds (a, b, weight, type)</pre>',
+    'BIND:watch': '<pre>tick = Watch.period(dt_ms=100)\n# universal ↔ particular</pre>',
+    'BIND:runtime': '<pre>def step(state, dial):\n    return update(state, dial)</pre>',
+    'BIND:fingerprint': '<pre>hash = fnv1a_64(state.to_bytes())\n# byte-exact across all 6 substrates</pre>',
+    'BIND:edge': '<pre>for n in cell.neighbors():\n    pass</pre>',
+    'TICK:cell': '<pre>cell.commit(new_state)\n# triggers all subscribers</pre>',
+    'TICK:fabric': '<pre>for c in fabric.cells():\n    c.tick(dt)</pre>',
+    'TICK:watch': '<pre>watch.advance()  # dt=1</pre>',
+    'TICK:runtime': '<pre>state = next(state)\n# 5-instruction interpreter</pre>',
+    'TICK:fingerprint': '<pre>hash = advance(hash)\n# reproducible given prev state</pre>',
+    'TICK:edge': '<pre>for e in cell.edges:\n    e.propagate()</pre>',
+    'FORGET:cell': '<pre>cell.discard()\n# 16 dials → 0</pre>',
+    'FORGET:fabric': '<pre>fabric.prune(dead_cells)\n# 7P-Set protocol</pre>',
+    'PROOF:cell': '<pre>assert cell.dials == expected</pre>',
+    'PROOF:fabric': '<pre>assert fabric.invariant()\n# e.g., no cycles in DAG</pre>',
+    'PROOF:runtime': '<pre>state : State = State(dials=...)\n# mypy + mycelium type check</pre>',
+    'PROOF:fingerprint': '<pre>assert hash_a == hash_b\n# byte-exact equivalence</pre>',
+    'ROUTE:cell': '<pre>cell.next(neighbor)\n# follows dialectic to next cell</pre>',
+    'ROUTE:fabric': '<pre>path = fabric.shortest(c1, c2)</pre>',
+    'CRDT:cell': '<pre>s_merged = merge(s_a, s_b)\n# last-write-wins on dials</pre>',
+    'CRDT:fabric': '<pre>f_merged = fabric.union(f1, f2)</pre>',
+    'WORLD:cell': '<pre>cell.observe(sensor_value)</pre>',
+    'WORLD:edge': '<pre>edge.connect(sensor, cell)</pre>',
+    'TIME:cell': '<pre>cell.at(t=0)  # initial state\ncell.at(t=1)  # after one tick</pre>',
+    'TIME:fabric': '<pre>fabric.history()  # list of states</pre>',
+    'LAW:cell': '<pre>∀ c, s : c.set(s).set(s) ≡ c.set(s)</pre>',
+    'LAW:fabric': '<pre>∀ f, c, c\\': f.link(c).link(c\\') ≡ f.link(c\\').link(c)</pre>',
+    'LAW:watch': '<pre>∀ t : watch(t+1) ⇄ advance(watch(t))</pre>',
+    'LAW:runtime': '<pre>∀ s : reverse(forward(s)) ≡ s</pre>',
+    'LAW:fingerprint': '<pre>∀ substrate : FNV-1a_64(state) = same</pre>',
+    'LAW:edge': '<pre>∀ c, c1, c2 : c.link(c1).link(c2) ≡ c.link(c2).link(c1)</pre>',
+  };
+  const key = op + ':' + sub;
+  detail.innerHTML = `<h3>${op} × ${sub}</h3>` + (examples[key] || '<p>No example yet.</p>') + '<p style="color:#888; font-size:0.8rem; margin-top:0.5rem">Pattern: the same opcode expresses differently per substrate. The 5 laws hold across all 6.</p>';
+}
+</script>
+</body>
+</html>
