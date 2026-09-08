@@ -182,6 +182,32 @@ end rtl;</pre>
   </div>
 
   <div class="lang-card">
+    <h3>Go <span class="status byte-exact">✓ byte-exact</span></h3>
+    <div class="repo">quilt-go</div>
+    <pre>func FNV1a64(data []byte) uint64 {
+  h := uint64(0xcbf29ce484222325)
+  for _, b := range data {
+    h ^= uint64(b)
+    h *= 0x100000001b3
+  }
+  return h
+}</pre>
+  </div>
+
+  <div class="lang-card">
+    <h3>Zig <span class="status byte-exact">✓ byte-exact</span></h3>
+    <div class="repo">quilt-zig</div>
+    <pre>pub fn fnv1a_64(data: []const u8) u64 {
+  var h: u64 = 0xcbf29ce484222325;
+  for (data) |b| {
+    h ^= @as(u64, b);
+    h *%= 0x100000001b3;
+  }
+  return h;
+}</pre>
+  </div>
+
+  <div class="lang-card">
     <h3>WASM <span class="status partial">⏳ partial</span></h3>
     <div class="repo">quilt-wasm (planned)</div>
     <pre>(module
@@ -231,6 +257,8 @@ end rtl;</pre>
   <div class="row"><div class="lang">VHDL</div><div class="hash match">0xe435d91d6d92a1d8</div></div>
   <div class="row"><div class="lang">JavaScript</div><div class="hash match">0xe435d91d6d92a1d8</div></div>
   <div class="row"><div class="lang">TypeScript</div><div class="hash match">0xe435d91d6d92a1d8</div></div>
+  <div class="row"><div class="lang">Go</div><div class="hash match">0xe435d91d6d92a1d8</div></div>
+  <div class="row"><div class="lang">Zig</div><div class="hash match">0xe435d91d6d92a1d8</div></div>
 </div>
 
 <p style="color:#888; font-size:0.85rem">Test cell: 1 cell, id=1, dials=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16], neighbors=[2,3,4]<br>
